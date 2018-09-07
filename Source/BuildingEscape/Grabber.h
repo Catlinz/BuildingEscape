@@ -3,7 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+
 #include "Components/ActorComponent.h"
+#include "Components/InputComponent.h"
+
 #include "Grabber.generated.h"
 
 
@@ -26,8 +31,28 @@ public:
 
 
 private:
+	// Ray-cast and grab whats in reach.
+	void Grab();
+
+	// Called when grab is released.
+	void Release();
+
+	// Find the attached physics handle component.
+	void FindPhysicsHandleComponent();
+	
+	// Find the attached input component and setup input handling.
+	void SetupInputComponent();
+
+	// Return hit for first physics body in reach.
+	const FHitResult GetFirstPhysicsBodyInReach();
+
+private:
+	// The distance (in cm) we can grab an object from.
 	UPROPERTY(EditAnywhere)
 	int GrabReachCm = 100;
+
+	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+	UInputComponent* InputComponent = nullptr;
 		
 	
 };
