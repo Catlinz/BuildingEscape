@@ -46,6 +46,12 @@ private:
 	// Return hit for first physics body in reach.
 	const FHitResult GetFirstPhysicsBodyInReach();
 
+	// Returns current end of reach line
+	const FVector GetReachLineEnd();
+
+	// Returns current start of reach line
+	const FVector GetReachLineStart();
+
 private:
 	// The distance (in cm) we can grab an object from.
 	UPROPERTY(EditAnywhere)
@@ -53,6 +59,4 @@ private:
 
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 	UInputComponent* InputComponent = nullptr;
-		
-	
 };

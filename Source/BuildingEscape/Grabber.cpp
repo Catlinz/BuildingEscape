@@ -10,11 +10,7 @@
 // Sets default values for this component's properties
 UGrabber::UGrabber()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -27,13 +23,11 @@ void UGrabber::BeginPlay()
 	SetupInputComponent();
 }
 
+// Gets and sets up the input component for grabbing and releasing.
 void UGrabber::SetupInputComponent() {
 	/// Look for the input component (only appears at runtime)
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent) {
-		UE_LOG(LogTemp, Warning, TEXT("Found input compoonent"));
-
-		/// Bind the input axis
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
@@ -44,52 +38,30 @@ void UGrabber::SetupInputComponent() {
 
 const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 {
-	/// Get player view point this tick
-	FVector EyeLocation;
-	FRotator EyeRotation;
-
-	GetOwner()->GetActorEyesViewPoint(EyeLocation, EyeRotation);
-
-	/// Ray-cast out to reach distance
-	FVector Direction = EyeRotation.Vector();
-	FVector LineTraceEnd = EyeLocation + (Direction * GrabReachCm);
-
-	/// See what we hit.
+	/// line-trace (AKA ray-cast) out to reach distance.
 	FHitResult HitResult;
-
-	// Setup query parameters.
-	FCollisionQueryParams TraceParameters = FCollisionQueryParams(FName(TEXT("")), false, GetOwner());
-
+	auto TraceParameters = FCollisionQueryParams(FName(TEXT("")), false, GetOwner());
 	GetWorld()->LineTraceSingleByObjectType(
 		HitResult,
-		EyeLocation,
-		LineTraceEnd,
+		GetReachLineStart(),
+		GetReachLineEnd(),
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		TraceParameters
 	);
-
-	AActor* ActorHit = HitResult.GetActor();
-	if (ActorHit) {
-		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *ActorHit->GetName());
-	}
-
 	return HitResult;
 }
 
+// Gets a pointer to our physics handle component for grabbing.
 void UGrabber::FindPhysicsHandleComponent() {
 	/// Look for attached physics handle.
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle) {
-		// Physics handle is found.
-	}
-	else {
+	if (PhysicsHandle == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("Physics handle not found on %s"), *GetOwner()->GetName());
 	}
 }
 
+// Try and grab an object in front via line trace and physics handle.
 void UGrabber::Grab() {
-	UE_LOG(LogTemp, Warning, TEXT("Grab key pressed"));
-
 	/// Try and reach any actors with physics body collision channel set.
 	auto HitResult = GetFirstPhysicsBodyInReach();
 
@@ -102,16 +74,14 @@ void UGrabber::Grab() {
 			ComponentToGrab,
 			NAME_None, 
 			ActorHit->GetActorLocation(),
-			true);
+			true // allow rotation
+		);
 	}
 }
 
 void UGrabber::Release() {
-	UE_LOG(LogTemp, Warning, TEXT("Grab key release"));
-
 	PhysicsHandle->ReleaseComponent();
 }
-
 
 // Called every frame
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -120,20 +90,23 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 	// If physics handle is attached, move the object we're holding.
 	if (PhysicsHandle->GetGrabbedComponent()) {
-
-		/// Get player view point this tick
-		FVector EyeLocation;
-		FRotator EyeRotation;
-
-		GetOwner()->GetActorEyesViewPoint(EyeLocation, EyeRotation);
-
-		/// Ray-cast out to reach distance
-		FVector Direction = EyeRotation.Vector();
-		FVector LineTraceEnd = EyeLocation + (Direction * GrabReachCm);
-
-		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+		PhysicsHandle->SetTargetLocation(GetReachLineEnd());
 	}
 	
 
 }
 
+const FVector UGrabber::GetReachLineEnd() {
+	FVector EyeLocation;  FRotator EyeRotation;
+	GetOwner()->GetActorEyesViewPoint(EyeLocation, EyeRotation);
+
+	return EyeLocation + (EyeRotation.Vector() * GrabReachCm);
+}
+
+const FVector UGrabber::GetReachLineStart()
+{
+	FVector EyeLocation;  FRotator EyeRotation;
+	GetOwner()->GetActorEyesViewPoint(EyeLocation, EyeRotation);
+
+	return EyeLocation;
+}
