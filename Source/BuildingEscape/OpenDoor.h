@@ -8,6 +8,8 @@
 
 #include "OpenDoor.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOpenRequest);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCloseRequest);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BUILDINGESCAPE_API UOpenDoor : public UActorComponent
@@ -18,32 +20,43 @@ public:
 	// Sets default values for this component's properties
 	UOpenDoor();
 
+
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
-	void OpenDoor();
-
-	void CloseDoor();
 
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-private:
-	UPROPERTY(EditAnywhere)
-	ATriggerVolume* PressurePlate;
+	UPROPERTY(BlueprintAssignable)
+	FOnOpenRequest OnOpenRequest;
 
-	AActor* ActorThatOpens;
+	UPROPERTY(BlueprintAssignable)
+	FOnCloseRequest OnCloseRequest;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	// The angle to open the door to.
 	float OpenAngle = -90.f;
 
+private:
+	const float GetTotalMassOfActorsOnPlate();
+
+	// Rotates the door into the open angle and sets last opened time.
+	void OpenDoor();
+
+	// Rotates the door to the closed angle.
+	void CloseDoor();
+
+private:
+	AActor * Owner = nullptr;
+
 	UPROPERTY(EditAnywhere)
-	float DoorCloseDelaySec = 1.f;
+	// Reference to the trigger volume used to open the door.
+	ATriggerVolume* PressurePlate = nullptr;
 
-	float LastDoorOpenTimeSec = 0.f;
-
-	AActor* Owner;
-	
+	UPROPERTY(EditAnywhere)
+	// The amount of total mass required to trigger the pressure plate.
+	float TriggerMass = 50.f;
 };

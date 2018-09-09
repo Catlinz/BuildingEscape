@@ -3,6 +3,7 @@
 #include "OpenDoor.h"
 
 #include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 
@@ -10,34 +11,28 @@
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	ActorThatOpens = nullptr;
-
-	// ...
 }
-
 
 // Called when the game starts
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
 	Owner = GetOwner();
+
+	if (!PressurePlate) {
+		UE_LOG(LogTemp, Error, TEXT("%s missing pressure plate!"), *Owner->GetName());
+	}
 }
 
 void UOpenDoor::OpenDoor()
 {
-	Owner->SetActorRotation(FRotator(0, OpenAngle, 0));
-	LastDoorOpenTimeSec = GetWorld()->GetTimeSeconds();
+	OnOpenRequest.Broadcast();
 }
 
 void UOpenDoor::CloseDoor()
 {
-	Owner->SetActorRotation(FRotator(0, 0, 0));
+	OnCloseRequest.Broadcast();
 }
 
 
@@ -46,16 +41,30 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Poll the trigger volume every frame
-	if (ActorThatOpens != nullptr && PressurePlate != nullptr && PressurePlate->IsOverlappingActor(ActorThatOpens)) {
-		 // If the ActorThatOpens is in the volume, then open door.
+	/// If there is enough mass on pressure plate, then open the door (if not already opened).
+	if (GetTotalMassOfActorsOnPlate() > TriggerMass) {
 		OpenDoor();
 	}
-
-	// Check if its time to close the door.
-	if (GetWorld()->GetTimeSeconds() >= LastDoorOpenTimeSec + DoorCloseDelaySec) {
+	else {
 		CloseDoor();
 	}
+}
+
+const float UOpenDoor::GetTotalMassOfActorsOnPlate() {
+	if (!PressurePlate) { return 0.0f; }
+	/// Find all the overlapping actors
+	TArray<AActor*> OverlappingActors;
+	PressurePlate->GetOverlappingActors(OverlappingActors);
 	
+	/// Iterate through them adding their masses.
+	float TotalMass = 0.f;
+	for (const auto* OverlappingActor : OverlappingActors) {
+		auto Component = OverlappingActor->FindComponentByClass<UPrimitiveComponent>();
+		if (Component != nullptr) {
+			TotalMass += Component->GetMass();
+		}
+	}
+
+	return TotalMass;
 }
 

@@ -69,7 +69,7 @@ void UGrabber::Grab() {
 	auto ActorHit = HitResult.GetActor();
 	auto ComponentToGrab = HitResult.GetComponent();
 
-	if (ActorHit) {
+	if (ActorHit && PhysicsHandle) {
 		PhysicsHandle->GrabComponent(
 			ComponentToGrab,
 			NAME_None, 
@@ -80,7 +80,10 @@ void UGrabber::Grab() {
 }
 
 void UGrabber::Release() {
-	PhysicsHandle->ReleaseComponent();
+	if (PhysicsHandle) {
+		PhysicsHandle->ReleaseComponent();
+	}
+	
 }
 
 // Called every frame
@@ -89,7 +92,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// If physics handle is attached, move the object we're holding.
-	if (PhysicsHandle->GetGrabbedComponent()) {
+	if (PhysicsHandle && PhysicsHandle->GetGrabbedComponent()) {
 		PhysicsHandle->SetTargetLocation(GetReachLineEnd());
 	}
 	
