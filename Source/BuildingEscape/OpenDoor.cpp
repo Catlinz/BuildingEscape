@@ -25,17 +25,6 @@ void UOpenDoor::BeginPlay()
 	}
 }
 
-void UOpenDoor::OpenDoor()
-{
-	OnOpenRequest.Broadcast();
-}
-
-void UOpenDoor::CloseDoor()
-{
-	OnCloseRequest.Broadcast();
-}
-
-
 // Called every frame
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -43,10 +32,10 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 
 	/// If there is enough mass on pressure plate, then open the door (if not already opened).
 	if (GetTotalMassOfActorsOnPlate() > TriggerMass) {
-		OpenDoor();
+		OnOpenRequest.Broadcast();
 	}
 	else {
-		CloseDoor();
+		OnCloseRequest.Broadcast();
 	}
 }
 
